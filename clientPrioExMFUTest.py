@@ -8,6 +8,8 @@ import sys
 import time
 import random
 
+
+
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -94,9 +96,6 @@ try:
 finally:
     print >>sys.stderr, 'closing socket'
     sock.close()
-
-  
-
 
 def main(args):
     return 0

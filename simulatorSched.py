@@ -59,9 +59,7 @@ def get_LRU():
 def carga_memoria(id_proceso, tupla):
     # busca marco disponible
     indice = get_marco_libre(memoria_real)
-    indice_bit_residencia = 0
-    indice_bit_swapping = 1
-    
+
     # no hay marcos disponbles
     if indice == -1: 
         info_lru = get_LRU()
@@ -69,15 +67,19 @@ def carga_memoria(id_proceso, tupla):
         #print(info_lru)
         #cargar en swap
         marco_en_swap = get_marco_libre(memoria_swapping)
+        # se pone en swapping lo que estaba en real
         memoria_swapping[marco_en_swap] = info_lru[1]
-        #poner None en ese marco
+        # actualizar indices de tabla procesos para indicar que esta en swapping
+        lista_procesos[info_lru[1][1]].tabla_paginas[info_lru[1][1]][2] = 1
+        lista_procesos[info_lru[1][1]].tabla_paginas[info_lru[1][1]][3] = marco_en_swap
+        #poner None en ese marco de memoria real
         memoria_real[info_lru[0]] = None
-        indice = info_lru[0]
-        # poner indice = info_lru
+        indice = get_marco_libre(memoria_real)
         # continuar ejeucion actual
 
     # (0, 1) - real | (2, 3) para swap
-    # memoria_real[i] = tupla
+
+    # se coloca en memoria real (timestamp, id proceso, pagina del proceso)
     memoria_real[indice] = (time.time() - initialTime, id_proceso, tupla[0])
     # actualizacion del bit residencia
     lista_procesos[id_proceso].tabla_paginas[tupla[0]][0] = 1
@@ -103,9 +105,17 @@ def toCPU(cola_listos):
 def get_dir_real(id_proceso, dir_virtual):
     tupla = getPageOffset(dir_virtual)
 
+    # bit de residencia 0
     if lista_procesos[id_proceso].tabla_paginas[tupla[0]][0] == 0:
-        # if lista_procesos[id_proceso].tabla_paginas[tupla[0]][2] == 1:
-        #     # traer de swapping
+        # checar si esta en swapping
+        if lista_procesos[id_proceso].tabla_paginas[tupla[0]][2] == 1:
+            # obtener marco en swap (temp)
+            marco_en_swap = lista_procesos[id_proceso].tabla_paginas[tupla[0]][3]
+            # ya no esta en swapping
+            lista_procesos[id_proceso].tabla_paginas[tupla[0]][2] = None
+            # poner none en swap
+            memoria_swapping[marco_en_swap] = None
+
         print("bit residencia fue 0 -- cargando")
         carga_memoria(id_proceso, tupla)
 
@@ -113,6 +123,7 @@ def get_dir_real(id_proceso, dir_virtual):
     if lista_procesos[id_proceso].tabla_paginas[tupla[0]][0] == 1:
         marco =  lista_procesos[id_proceso].tabla_paginas[tupla[0]][1]
         return marco*tam_pagina + tupla[1]
+        # actualizar el tiempo
 
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

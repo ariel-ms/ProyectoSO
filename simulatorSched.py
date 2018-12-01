@@ -27,6 +27,10 @@ class Proceso:
         self.priori = priori
         self.tamano = tam
         self.tiempo = tiempo
+        self.tiempocpu = 0
+        self.acumtiempo = 0
+        self.turnaround = 0
+        self.tiempoespera = 0
         # #pagina (indice fila) | Bit residencia | Marco | Bit residencia swapping | Marco en Swapping
         self.tabla_paginas = [[None for x in range(4)] for y in range(tam / tam_pagina)]
 
@@ -36,6 +40,29 @@ class Proceso:
 
     def __lt__(self, other):
         return self.priori < other.priori
+
+    def setTiempoInicialCpu(self):
+        self.tiempocpu = time.time()
+
+    def setAcumTiempoCpu(self):
+        difTiempo = time.time() - self.tiempocpu
+        self.acumtiempo += difTiempo
+
+    def printTiempoCpu(self):
+        #print >>self.acumtiempo
+        print >>sys.stderr, 'cpu time =  %s ms' % self.acumtiempo
+    
+    def setTurnaroud(self):
+        self.turnaround = time.tiem() - self.tiempo
+    
+    def printTurnaround(self):
+        print >>sys.stderr, 'cpu time =  %s ms' % self.turnaround
+
+    def setTiempoEspera(self):
+        self.tiempoespera = self.turnaround - self.tiempocpu
+    
+    def printTiempoEspera(self):
+        print >>sys.stderr, 'cpu time =  %s ms' % self.tiempoespera
 
 def get_marco_libre(memoria):
     for i in range(0, len(memoria)):
@@ -169,10 +196,14 @@ try:
                 lista_procesos[numero_id] = proceso_i
                 numero_id = numero_id + 1
                 if cpu == None: 
+                    #guarda el tiempo en el que entra al cpu
+                    proceso_i.setTiempoInicialCpu()
                     toCPU(cola_listos)
                 elif -1*proceso_i.priori > -1*cpu.priori:
                     # prempt
                     print("prempt")
+                    proceso_i.setAcumTiempoCpu()
+                    proceso_i.printTiempoCpu()
                     temporal = cpu
                     toCPU(cola_listos)
                     # regresar proceso a cola de listos
@@ -183,6 +214,13 @@ try:
                     real = get_dir_real(int(command_list[1]), int(command_list[2]))
                     print("DIR REAL: " + str(real))
                     print(cpu.id)
+            #fin sacar de memoria real = none
+            #sacar de mem virt. = none
+            #array
+            #tupla = timestamp , id_proceso, pag.
+            #si id = idproceso -> none
+            
+
         else:
             print >>sys.stderr, 'no data from', client_address
             connection.close()

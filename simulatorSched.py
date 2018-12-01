@@ -7,20 +7,76 @@ import sys
 import time
 import heapq
 
+lista_procesos = {}
 command_list = []
 cola_listos = []
 numero_id = 1
+tam_memoria_real = 0
+num_marcos_real = 0
+tam_memoria_swap = 0
+tam_pagina = 0
 
-class Proceso:
-    def __init__(self, id_proceso, prioridad, tiempo):
+cpu = None
+memoria_real = []
+
+class Proceso: 
+    def __init__(self, id_proceso, prioridad, tamano, tiempo):
         self.id = id_proceso
         self.prioridad = prioridad
+        self.tamano = tamano
         self.tiempo = tiempo
-        print("esta es la prioridad del proceso " + str(self.id) + "-" + str(self.prioridad))
+        # #pagina (indice fila) | Bit residencia | Marco | Bit residencia swapping | Marco en Swapping
+        self.tabla_paginas = [[None for x in range(4)] for y in range(tamano / tam_pagina)]
+        print(self.tabla_paginas)
 
     def __cmp__(self, other):
         return cmp((self.prioridad, self.tiempo), (other.prioridad, other.tiempo))
 
+def get_marco_libre():
+    for i in range(0, len(memoria_real)):
+        if memoria_real[i] == None:
+            return i
+    return -1
+
+# busca el marco disponible, obtiene (p,d), pone en m
+def carga_memoria(id_proceso, tupla):
+    # busca marco disponible
+    indice = get_marco_libre()
+
+    # TODO no hay marcos disponbles
+    # if indice = -1
+
+    # memoria_real[i] = tupla
+    memoria_real[indice] = (time.time() - initialTime, id_proceso, tupla[0])
+    # actualizacion del bit residencia
+    lista_procesos[id_proceso].tabla_paginas[tupla[0]][0] = 1
+    # poner numero de marco en tabla
+    lista_procesos[id_proceso].tabla_paginas[tupla[0]][1] = indice
+
+def getPageOffset(dir_virtual):
+    p = dir_virtual / tam_pagina
+    d = dir_virtual % tam_pagina
+    return (p, d)
+
+def toCPU(cola_listos):
+    print("ENTRE AL CPU")
+    global cpu
+    # proceso = sacar elem del heap
+    proceso = heapq.heappop(cola_listos)
+    tupla = getPageOffset(0)
+    carga_memoria(proceso.id, tupla)
+    #entra al cpu
+    cpu = proceso
+
+# regresar numero real
+def get_dir_real(id_proceso, dir_virtual):
+    tupla = getPageOffset(dir_virtual)
+    # bit de residencia = 1
+    if lista_procesos[id_proceso].tabla_paginas[tupla[0]][0] == 1:
+        marco =  lista_procesos[id_proceso].tabla_paginas[tupla[0]][1]
+        return marco*tam_pagina + tupla[1]
+    # else:
+    #     # hacer lo de cargar a real
 
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -51,17 +107,38 @@ try:
     # Receive the data 
     while True:   
         data = connection.recv(256)
-        command_list = data.split()
-        if len(command_list) > 0  and command_list[0] == "Create":
-            prioridad = int(command_list[2])
-            proceso_i = Proceso(numero_id, -1*prioridad, time.time() - initialTime)
-            heapq.heappush(cola_listos, proceso_i)
-            numero_id = numero_id + 1
-            print prioridad
         print >>sys.stderr, 'server received "%s"' % data
         if data:
             print >>sys.stderr, 'sending answer back to the client'
             connection.sendall('process created')
+            command_list = data.split()
+
+            if command_list[0] == "RealMemory":
+                tam_memoria_real = int(command_list[1])
+            elif command_list[0] == "SwapMemory":
+                tam_memoria_swap = int(command_list[1])
+            elif command_list[0] == "PageSize":
+                tam_pagina = int(command_list[1]) * 1024
+                num_marcos_real = (tam_memoria_real*1024) / tam_pagina
+                memoria_real = [None]*num_marcos_real
+
+            if command_list[0] == "Create":
+                tamano = int(command_list[1])
+                prioridad = int(command_list[2])
+                proceso_i = Proceso(numero_id, -1*prioridad, tamano, time.time() - initialTime)
+                heapq.heappush(cola_listos, proceso_i)
+                lista_procesos[numero_id] = proceso_i
+                numero_id = numero_id + 1
+                if cpu == None: 
+                    toCPU(cola_listos)
+            elif command_list[0] == "Address":
+                # si pagina no esta en real primero buscar en area swapp
+                if int(command_list[1]) == cpu.id:
+                    real = get_dir_real(int(command_list[1]), int(command_list[2]))
+                    print("DIR REAL: " + str(real))
+                    print(cpu.id)
+
+
         else:
             print >>sys.stderr, 'no data from', client_address
             connection.close()

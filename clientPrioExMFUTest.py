@@ -21,32 +21,42 @@ sock.connect(server_address)
 # After the connection is established, data can be sent through the socket with sendall() and received with recv(), just as in 
 # the server.
 
+# m = ['Politicas Scheduling PrioEx Memory MFU',\
+# 			'QuantumV 1.000',\
+# 			'RealMemory 3', \
+# 			'SwapMemory 4',\
+# 			'PageSize 1', \
+# 			(0.000,'Create 2048 5 '), \
+# 				(0.001,'Create 3072 6'), \
+# 				(0.002,'Create 5000 6'), \
+# 				(0.003, 'Address 2 4'),\
+# 				(1.000,'Address 2 1023'), \
+# 				(1.001, 'Fin 2'), \
+# 				(2.000, 'Address 3 20'),\
+# 				(2.001, 'Address 3 3000'), \
+# 				(2.002, 'Address 3 4900'),\
+# 				(3.000, 'Create 1024 4'), \
+# 				(3.001, 'Address 3 10'),\
+# 				(3.002,'Fin 3'), \
+# 				(3.003,'Create 1024 2'), \
+# 				(3.004,'Create 1024 3'), \
+# 				(4.000,'Address 1 10'),\
+# 				(4.001,'Fin 1'),\
+# 				(4.002,'Fin 4'),\
+# 				(4.003,'Fin 5'),\
+# 				(4.004,'Fin 6'),\
+# 				(4.005,'End')]
+
 m = ['Politicas Scheduling PrioEx Memory MFU',\
 			'QuantumV 1.000',\
 			'RealMemory 3', \
 			'SwapMemory 4',\
 			'PageSize 1', \
 			(0.000,'Create 2048 5 '), \
-				(0.001,'Create 3072 6'), \
-				(0.002,'Create 5000 6'), \
-				(0.003, 'Address 2 4'),\
-				(1.000,'Address 2 1023'), \
-				(1.001, 'Fin 2'), \
-				(2.000, 'Address 3 20'),\
-				(2.001, 'Address 3 3000'), \
-				(2.002, 'Address 3 4900'),\
-				(3.000, 'Create 1024 4'), \
-				(3.001, 'Address 3 10'),\
-				(3.002,'Fin 3'), \
-				(3.003,'Create 1024 2'), \
-				(3.004,'Create 1024 3'), \
-				(4.000,'Address 1 10'),\
-				(4.001,'Fin 1'),\
-				(4.002,'Fin 4'),\
-				(4.003,'Fin 5'),\
-				(4.004,'Fin 6'),\
-				(4.005,'End')]
-				
+				(1.000, 'Address 1 4'),\
+				(2.001,'Fin 1'),\
+				(3.005,'End')]
+
 try:
     
 	previousMsgTime = 0.0

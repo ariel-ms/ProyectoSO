@@ -14,10 +14,12 @@ numero_id = 1
 tam_memoria_real = 0
 num_marcos_real = 0
 tam_memoria_swap = 0
+num_marcos_swap = 0
 tam_pagina = 0
 
 cpu = None
 memoria_real = []
+memoria_swapping = []
 
 class Proceso: 
     def __init__(self, id_proceso, priori, tam, tiempo):
@@ -35,20 +37,46 @@ class Proceso:
     def __lt__(self, other):
         return self.priori < other.priori
 
-def get_marco_libre():
-    for i in range(0, len(memoria_real)):
-        if memoria_real[i] == None:
+def get_marco_libre(memoria):
+    for i in range(0, len(memoria)):
+        if memoria[i] == None:
             return i
     return -1
+
+def get_LRU():
+    tiempo = sys.maxint
+    lru = None
+    indice = None
+    for indice_marco in range(0, len(memoria_real)):
+        marco = memoria_real[indice_marco]
+        if marco[0] < tiempo:
+            tiempo = marco[0]
+            lru = marco
+            indice = indice_marco
+    return (indice, lru)
 
 # busca el marco disponible, obtiene (p,d), pone en m
 def carga_memoria(id_proceso, tupla):
     # busca marco disponible
-    indice = get_marco_libre()
+    indice = get_marco_libre(memoria_real)
+    indice_bit_residencia = 0
+    indice_bit_swapping = 1
+    
+    # no hay marcos disponbles
+    if indice == -1: 
+        info_lru = get_LRU()
+        #print("elem menos usado")
+        #print(info_lru)
+        #cargar en swap
+        marco_en_swap = get_marco_libre(memoria_swapping)
+        memoria_swapping[marco_en_swap] = info_lru[1]
+        #poner None en ese marco
+        memoria_real[info_lru[0]] = None
+        indice = info_lru[0]
+        # poner indice = info_lru
+        # continuar ejeucion actual
 
-    # TODO no hay marcos disponbles
-    # if indice = -1
-
+    # (0, 1) - real | (2, 3) para swap
     # memoria_real[i] = tupla
     memoria_real[indice] = (time.time() - initialTime, id_proceso, tupla[0])
     # actualizacion del bit residencia
@@ -59,7 +87,7 @@ def carga_memoria(id_proceso, tupla):
 def getPageOffset(dir_virtual):
     p = dir_virtual / tam_pagina
     d = dir_virtual % tam_pagina
-    return (p, d)
+    return (p, d) 
 
 def toCPU(cola_listos):
     print("ENTRE AL CPU")
@@ -74,12 +102,17 @@ def toCPU(cola_listos):
 # regresar numero real
 def get_dir_real(id_proceso, dir_virtual):
     tupla = getPageOffset(dir_virtual)
+
+    if lista_procesos[id_proceso].tabla_paginas[tupla[0]][0] == 0:
+        # if lista_procesos[id_proceso].tabla_paginas[tupla[0]][2] == 1:
+        #     # traer de swapping
+        print("bit residencia fue 0 -- cargando")
+        carga_memoria(id_proceso, tupla)
+
     # bit de residencia = 1
     if lista_procesos[id_proceso].tabla_paginas[tupla[0]][0] == 1:
         marco =  lista_procesos[id_proceso].tabla_paginas[tupla[0]][1]
         return marco*tam_pagina + tupla[1]
-    # else:
-    #     # hacer lo de cargar a real
 
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -123,7 +156,9 @@ try:
             elif command_list[0] == "PageSize":
                 tam_pagina = int(command_list[1]) * 1024
                 num_marcos_real = (tam_memoria_real*1024) / tam_pagina
+                num_marcos_swap = (tam_memoria_swap*1024) / tam_pagina
                 memoria_real = [None]*num_marcos_real
+                memoria_swapping = [None]*num_marcos_swap
 
             if command_list[0] == "Create":
                 print(command_list)
@@ -161,8 +196,12 @@ finally:
         print(str(elem.id) + " - " + str(elem.priori) + " " + str(elem.tiempo))
     for i in range(0, len(memoria_real)):
         if memoria_real[i] != None:
-            print "marco: " + str(i)
+            print "marco en real: " + str(i)
             print memoria_real[i]
+    for i in range(0, len(memoria_swapping)):
+        if memoria_swapping[i] != None:
+            print "marco en swap: " + str(i)
+            print memoria_swapping[i]
     connection.close()
 
 #When communication with a client is finished, the connection needs to be cleaned up using close(). This example uses a try:finally block to ensure that close() is always called, even in the event of an error.
@@ -173,4 +212,3 @@ def main(args):
 if __name__ == '__main__':
     import sys
     sys.exit(main(sys.argv))
-

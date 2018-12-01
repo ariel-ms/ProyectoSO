@@ -54,11 +54,15 @@ m = ['Politicas Scheduling PrioEx Memory MFU',\
 			'PageSize 1', \
 			(0.000,'Create 2048 5 '), \
 				(1.003, 'Address 1 4'),\
-				(2.001,'Create 3072 6 '), \
+				(2.001,'Create 5000 6 '), \
+				(3.003, 'Address 2 2500'),\
+				(3.003, 'Address 2 3500'),\
 				(4.005,'End')]
 
+# se pase a swap
+# se regrese de swap
+# se pida la misma pagina y actualize el swap
 try:
-    
 	previousMsgTime = 0.0
 	
 	debug1 = True

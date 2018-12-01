@@ -20,17 +20,20 @@ cpu = None
 memoria_real = []
 
 class Proceso: 
-    def __init__(self, id_proceso, prioridad, tamano, tiempo):
+    def __init__(self, id_proceso, priori, tam, tiempo):
         self.id = id_proceso
-        self.prioridad = prioridad
-        self.tamano = tamano
+        self.priori = priori
+        self.tamano = tam
         self.tiempo = tiempo
         # #pagina (indice fila) | Bit residencia | Marco | Bit residencia swapping | Marco en Swapping
-        self.tabla_paginas = [[None for x in range(4)] for y in range(tamano / tam_pagina)]
-        print(self.tabla_paginas)
+        self.tabla_paginas = [[None for x in range(4)] for y in range(tam / tam_pagina)]
 
-    def __cmp__(self, other):
-        return cmp((self.prioridad, self.tiempo), (other.prioridad, other.tiempo))
+    # def __cmp__(self, other):
+    #     print(self.priori)
+    #     return cmp((self.priori, self.tiempo), (other.priori, other.tiempo))
+
+    def __lt__(self, other):
+        return self.priori < other.priori
 
 def get_marco_libre():
     for i in range(0, len(memoria_real)):
@@ -123,6 +126,7 @@ try:
                 memoria_real = [None]*num_marcos_real
 
             if command_list[0] == "Create":
+                print(command_list)
                 tamano = int(command_list[1])
                 prioridad = int(command_list[2])
                 proceso_i = Proceso(numero_id, -1*prioridad, tamano, time.time() - initialTime)
@@ -131,14 +135,19 @@ try:
                 numero_id = numero_id + 1
                 if cpu == None: 
                     toCPU(cola_listos)
+                elif -1*proceso_i.priori > -1*cpu.priori:
+                    # prempt
+                    print("prempt")
+                    temporal = cpu
+                    toCPU(cola_listos)
+                    # regresar proceso a cola de listos
+                    heapq.heappush(cola_listos, temporal)
             elif command_list[0] == "Address":
                 # si pagina no esta en real primero buscar en area swapp
                 if int(command_list[1]) == cpu.id:
                     real = get_dir_real(int(command_list[1]), int(command_list[2]))
                     print("DIR REAL: " + str(real))
                     print(cpu.id)
-
-
         else:
             print >>sys.stderr, 'no data from', client_address
             connection.close()
@@ -149,7 +158,11 @@ finally:
     print >>sys.stderr, 'se fue al finally'
     for i in range(0, len(cola_listos)):
         elem = heapq.heappop(cola_listos)
-        print(str(elem.id) + " - " + str(elem.prioridad) + " " + str(elem.tiempo))
+        print(str(elem.id) + " - " + str(elem.priori) + " " + str(elem.tiempo))
+    for i in range(0, len(memoria_real)):
+        if memoria_real[i] != None:
+            print "marco: " + str(i)
+            print memoria_real[i]
     connection.close()
 
 #When communication with a client is finished, the connection needs to be cleaned up using close(). This example uses a try:finally block to ensure that close() is always called, even in the event of an error.

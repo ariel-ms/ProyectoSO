@@ -53,9 +53,9 @@ m = ['Politicas Scheduling PrioEx Memory MFU',\
 			'SwapMemory 4',\
 			'PageSize 1', \
 			(0.000,'Create 2048 5 '), \
-				(1.000, 'Address 1 4'),\
-				(2.001,'Fin 1'),\
-				(3.005,'End')]
+				(1.003, 'Address 1 4'),\
+				(2.001,'Create 3072 6 '), \
+				(4.005,'End')]
 
 try:
     

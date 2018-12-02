@@ -273,16 +273,13 @@ try:
                 proceso_i.printTiempoEspera()
                 proceso_i.setTurnaroud()
                 proceso_i.printTurnaround()
+                #cpu = None       
+            
+            elif command_list[0] == "End":
+                print "simulation terminated"
                 for i in lista_procesos:
                     lista_procesos[i].setTiempoEspera()
                     lista_procesos[i].setTurnaroud()
-                
-                cpu = None
-                    
-            elif command_list[0] == "End":
-                print "simulation terminated"
-                proceso_i.printTiempoTerminaCpu()
-                proceso_i.setAcumTiempoCpu()
 
         else:
             print >>sys.stderr, 'no data from', client_address

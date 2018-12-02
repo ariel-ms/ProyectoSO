@@ -27,10 +27,11 @@ class Proceso:
         self.priori = priori
         self.tamano = tam
         self.tiempo = tiempo
-        self.tiempocpu = 0
-        self.acumtiempo = 0
-        self.turnaround = 0
-        self.tiempoespera = 0
+        self.tiempocpu = 0.0
+        self.tiempoterminacpu = 0.0
+        self.acumtiempo = 0.0
+        self.turnaround = 0.0
+        self.tiempoespera = 0.0
         # #pagina (indice fila) | Bit residencia | Marco | Bit residencia swapping | Marco en Swapping
         self.tabla_paginas = [[None for x in range(4)] for y in range(tam / tam_pagina)]
 
@@ -43,6 +44,7 @@ class Proceso:
 
     def setTiempoInicialCpu(self):
         self.tiempocpu = time.time()
+        print 'cpu inicial time =  %s ms' % self.tiempocpu
 
     def setAcumTiempoCpu(self):
         difTiempo = time.time() - self.tiempocpu
@@ -50,19 +52,24 @@ class Proceso:
 
     def printTiempoCpu(self):
         #print >>self.acumtiempo
-        print >>sys.stderr, 'cpu time =  %s ms' % self.acumtiempo
+        print 'cpu time =  %s ms' % self.acumtiempo
+    
+    def printTiempoTerminaCpu(self):
+        self.tiempoterminacpu = time.time()
+        print 'cpu termina = %s ms' % self.tiempoterminacpu
     
     def setTurnaroud(self):
-        self.turnaround = time.tiem() - self.tiempo
+        #self.turnaround = time.time() - self.tiempo
+        self.turnaround = self.acumtiempo + self.tiempoespera
     
     def printTurnaround(self):
-        print >>sys.stderr, 'cpu time =  %s ms' % self.turnaround
+        print 'turnaround =  %s ms' % self.turnaround
 
     def setTiempoEspera(self):
-        self.tiempoespera = self.turnaround - self.tiempocpu
+        self.tiempoespera = time.time() - self.acumtiempo
     
     def printTiempoEspera(self):
-        print >>sys.stderr, 'cpu time =  %s ms' % self.tiempoespera
+        print >>sys.stderr, 'tiempo espera =  %s ms' % self.tiempoespera
 
 def get_marco_libre(memoria):
     for i in range(0, len(memoria)):
@@ -151,7 +158,32 @@ def get_dir_real(id_proceso, dir_virtual):
         marco =  lista_procesos[id_proceso].tabla_paginas[tupla[0]][1]
         return marco*tam_pagina + tupla[1]
         # actualizar el tiempo
+"""
+def finProceso(id_proceso):
+    # 
+    for i in memoria_real:
+        #checar si esta en memoria real
+        if lista_procesos[id_proceso] == memoria_real[i].id_proceso:
+            memoria_real[i] = None
+        # checar si esta en swapping
+        elif lista_procesos[id_proceso] == memoria_swapping[i].id_proceso:
+            memoria_swapping[i] = None
+            # obtener marco en swap (temp)
+            marco_en_swap = lista_procesos[id_proceso].tabla_paginas[tupla[0]][3]
+            # ya no esta en swapping
+            lista_procesos[id_proceso].tabla_paginas[tupla[0]][2] = None
+            # poner none en swap
+            memoria_swapping[marco_en_swap] = None
 
+        print("bit residencia fue 0 -- cargando")
+        carga_memoria(id_proceso, tupla)
+
+    # bit de residencia = 1
+    if lista_procesos[id_proceso].tabla_paginas[tupla[0]][0] == 1:
+        marco =  lista_procesos[id_proceso].tabla_paginas[tupla[0]][1]
+        return marco*tam_pagina + tupla[1]
+        # actualizar el tiempo
+"""
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -206,6 +238,7 @@ try:
                 heapq.heappush(cola_listos, proceso_i)
                 lista_procesos[numero_id] = proceso_i
                 numero_id = numero_id + 1
+                #proceso_i.tiempo = time.time()
                 if cpu == None: 
                     #guarda el tiempo en el que entra al cpu
                     proceso_i.setTiempoInicialCpu()
@@ -213,10 +246,13 @@ try:
                 elif -1*proceso_i.priori > -1*cpu.priori:
                     # prempt
                     print("prempt")
-                    proceso_i.setAcumTiempoCpu()
-                    proceso_i.printTiempoCpu()
+                    cpu.setAcumTiempoCpu()
+                    #proceso_i.printTiempoCpu()
+                    cpu.printTiempoTerminaCpu()
+                    cpu.printTiempoCpu()
                     temporal = cpu
                     toCPU(cola_listos)
+                    proceso_i.setTiempoInicialCpu()
                     # regresar proceso a cola de listos
                     heapq.heappush(cola_listos, temporal)
             elif command_list[0] == "Address":
@@ -230,7 +266,23 @@ try:
             #array
             #tupla = timestamp , id_proceso, pag.
             #si id = idproceso -> none
-            
+            elif command_list[0] == "Fin":
+                proceso_i.setAcumTiempoCpu()
+                proceso_i.printTiempoCpu()
+                proceso_i.setTiempoEspera()
+                proceso_i.printTiempoEspera()
+                proceso_i.setTurnaroud()
+                proceso_i.printTurnaround()
+                for i in lista_procesos:
+                    lista_procesos[i].setTiempoEspera()
+                    lista_procesos[i].setTurnaroud()
+                
+                cpu = None
+                    
+            elif command_list[0] == "End":
+                print "simulation terminated"
+                proceso_i.printTiempoTerminaCpu()
+                proceso_i.setAcumTiempoCpu()
 
         else:
             print >>sys.stderr, 'no data from', client_address
@@ -251,6 +303,12 @@ finally:
         if memoria_swapping[i] != None:
             print "marco en swap: " + str(i)
             print memoria_swapping[i]
+    #imprime los tiempos para cada proceso
+    for i in lista_procesos:
+        print "Proceso %s" %i
+        print ("tiempo de cpu: " + str(lista_procesos[i].acumtiempo))
+        print ("tiempo de turnaround: " + str(lista_procesos[i].turnaround))
+        print ("tiempo de espera: " + str(lista_procesos[i].tiempoespera))
     connection.close()
 
 #When communication with a client is finished, the connection needs to be cleaned up using close(). This example uses a try:finally block to ensure that close() is always called, even in the event of an error.

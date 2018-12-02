@@ -57,6 +57,7 @@ m = ['Politicas Scheduling PrioEx Memory MFU',\
 				(2.001,'Create 5000 6 '), \
 				(3.003, 'Address 2 2500'),\
 				(3.003, 'Address 2 3500'),\
+				(3.004, 'Fin 2'),\
 				(4.005,'End')]
 
 # se pase a swap

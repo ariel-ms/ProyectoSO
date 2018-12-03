@@ -34,6 +34,8 @@ class Proceso:
         self.tiempoespera = 0.0
         # #pagina (indice fila) | Bit residencia | Marco | Bit residencia swapping | Marco en Swapping
         self.tabla_paginas = [[None for x in range(4)] for y in range(tam / tam_pagina)]
+        self.page_faults = 0.0
+        self.visita_pagina = 0.0
 
     # def __cmp__(self, other):
     #     print(self.priori)
@@ -115,6 +117,8 @@ def carga_memoria(id_proceso, tupla):
 
     # se coloca en memoria real (timestamp, id proceso, pagina del proceso)
     memoria_real[indice] = (time.time() - initialTime, id_proceso, tupla[0])
+    # se aumenta en uno el contador de page faults
+    lista_procesos[id_proceso].page_faults += 1
     # actualizacion del bit residencia
     lista_procesos[id_proceso].tabla_paginas[tupla[0]][0] = 1
     # poner numero de marco en tabla
@@ -132,6 +136,7 @@ def toCPU(cola_listos):
     proceso = heapq.heappop(cola_listos)
     tupla = getPageOffset(0)
     carga_memoria(proceso.id, tupla)
+
     #entra al cpu
     cpu = proceso
 
@@ -261,6 +266,8 @@ try:
                     real = get_dir_real(int(command_list[1]), int(command_list[2]))
                     print("DIR REAL: " + str(real))
                     print(cpu.id)
+                    lista_procesos[cpu.id].visita_pagina += 1
+
             #fin sacar de memoria real = none
             #sacar de mem virt. = none
             #array
@@ -301,11 +308,21 @@ finally:
             print "marco en swap: " + str(i)
             print memoria_swapping[i]
     #imprime los tiempos para cada proceso
+    suma_turnaround = 0
+    suma_espera = 0
     for i in lista_procesos:
         print "Proceso %s" %i
         print ("tiempo de cpu: " + str(lista_procesos[i].acumtiempo))
         print ("tiempo de turnaround: " + str(lista_procesos[i].turnaround))
         print ("tiempo de espera: " + str(lista_procesos[i].tiempoespera))
+        print ("page faults: " + str(lista_procesos[i].page_faults))
+        print ("visitas pagina: " + str(lista_procesos[i].visita_pagina))
+        print ("rendimiento: " + str(1 - (lista_procesos[i].page_faults/lista_procesos[i].visita_pagina)))
+        suma_turnaround += lista_procesos[i].turnaround
+        suma_espera += lista_procesos[i].tiempoespera
+
+    print("turnaround promedio: " + str(suma_turnaround/len(lista_procesos)))
+    print("espera promedio: " + str(suma_espera/len(lista_procesos)))
     connection.close()
 
 #When communication with a client is finished, the connection needs to be cleaned up using close(). This example uses a try:finally block to ensure that close() is always called, even in the event of an error.

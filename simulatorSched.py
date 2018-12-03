@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #This sample program, based on the one in the standard library documentation, receives incoming messages and echos them back to the sender. It starts by creating a TCP/IP socket.
-
+from tabulate import tabulate
 import socket
 import sys
 import time
@@ -10,12 +10,14 @@ import heapq
 lista_procesos = {}
 command_list = []
 cola_listos = []
+procesos_terminados = []
 numero_id = 1
 tam_memoria_real = 0
 num_marcos_real = 0
 tam_memoria_swap = 0
 num_marcos_swap = 0
 tam_pagina = 0
+table = []
 
 cpu = None
 memoria_real = []
@@ -45,8 +47,8 @@ class Proceso:
         return self.priori < other.priori
 
     def setTiempoInicialCpu(self):
-        self.tiempocpu = time.time()
-        print 'cpu inicial time =  %s ms' % self.tiempocpu
+        self.tiempocpu = initialTime
+        #print 'cpu inicial time =  %s ms' % self.tiempocpu
 
     def setAcumTiempoCpu(self):
         difTiempo = time.time() - self.tiempocpu
@@ -57,7 +59,7 @@ class Proceso:
         print 'cpu time =  %s ms' % self.acumtiempo
     
     def printTiempoTerminaCpu(self):
-        self.tiempoterminacpu = time.time()
+        self.tiempoterminacpu = time.time() - initialTime
         print 'cpu termina = %s ms' % self.tiempoterminacpu
     
     def setTurnaroud(self):
@@ -68,7 +70,7 @@ class Proceso:
         print 'turnaround =  %s ms' % self.turnaround
 
     def setTiempoEspera(self):
-        self.tiempoespera = time.time() - self.acumtiempo
+        self.tiempoespera = (time.time() - initialTime) - self.acumtiempo
     
     def printTiempoEspera(self):
         print >>sys.stderr, 'tiempo espera =  %s ms' % self.tiempoespera
@@ -130,7 +132,7 @@ def getPageOffset(dir_virtual):
     return (p, d) 
 
 def toCPU(cola_listos):
-    print("ENTRE AL CPU")
+    #print("ENTRE AL CPU")
     global cpu
     # proceso = sacar elem del heap
     proceso = heapq.heappop(cola_listos)
@@ -215,12 +217,14 @@ try:
     print >>sys.stderr, 'connection from', client_address
     initialTime = time.time()
 
+    #print tabulate([['Comando','timestamp','dir real','cola de listos','CPU','Memoria','Swapping','Procesos Terminados']])
+    headers = ['Comando','timestamp','dir real','cola de listos','CPU','Memoria','Swapping','Procesos Terminados']
     # Receive the data 
     while True:   
         data = connection.recv(256)
-        print >>sys.stderr, 'server received "%s"' % data
+        #print >>sys.stderr, 'server received "%s"' % data
         if data:
-            print >>sys.stderr, 'sending answer back to the client'
+            #print >>sys.stderr, 'sending answer back to the client'
             connection.sendall('process created')
             command_list = data.split()
 
@@ -236,7 +240,7 @@ try:
                 memoria_swapping = [None]*num_marcos_swap
 
             if command_list[0] == "Create":
-                print(command_list)
+                #print(command_list)
                 tamano = int(command_list[1])
                 prioridad = int(command_list[2])
                 proceso_i = Proceso(numero_id, -1*prioridad, tamano, time.time() - initialTime)
@@ -250,24 +254,52 @@ try:
                     toCPU(cola_listos)
                 elif -1*proceso_i.priori > -1*cpu.priori:
                     # prempt
-                    print("prempt")
+                    #print("prempt")
                     cpu.setAcumTiempoCpu()
                     #proceso_i.printTiempoCpu()
-                    cpu.printTiempoTerminaCpu()
-                    cpu.printTiempoCpu()
+                    #cpu.printTiempoTerminaCpu()
+                    #cpu.printTiempoCpu()
                     temporal = cpu
                     toCPU(cola_listos)
                     proceso_i.setTiempoInicialCpu()
                     # regresar proceso a cola de listos
                     heapq.heappush(cola_listos, temporal)
+                #strings para la tabla
+                cpustring = ''.join([str(cpu.id),"p",str(command_list[2])])
+
+                colalistosstring = ''
+                for i in range(0, len(cola_listos)):
+                    colalistosstring += str(cola_listos[i].id) + "p" + str(-1*cola_listos[i].priori) + ", "
+                
+                memoriarealstring = ''  
+                for i in range(0, len(memoria_real)):
+                    if memoria_real[i] != None:
+                        memoriarealstring += str(i) + ":"
+                        memoriarealstring += str(memoria_real[i][1]) + "." + str(memoria_real[i][2]) + " ,"
+                    else:
+                        memoriarealstring += str(i)
+                        memoriarealstring += ":L, "
+                
+                memoriaswapstring = ''
+                for i in range(0, len(memoria_swapping)):
+                    if memoria_swapping[i] != None:
+                        memoriaswapstring += str(i) + ":"
+                        memoriaswapstring += str(memoria_swapping[i][1]) + "." + str(memoria_swapping[i][2]) + " ,"
+                    else:
+                        memoriaswapstring += str(i)
+                        memoriaswapstring += ":L, "
+                
+                #print tabulate([[data,time.time(),' ',colalistosstring , cpustring, memoriarealstring, memoriaswapstring,procesos_terminados]])
+                table += [[data,str(time.time() - initialTime),' ',colalistosstring , cpustring, memoriarealstring, memoriaswapstring,str(procesos_terminados)]]
             elif command_list[0] == "Address":
                 # si pagina no esta en real primero buscar en area swapp
                 if int(command_list[1]) == cpu.id:
                     real = get_dir_real(int(command_list[1]), int(command_list[2]))
-                    print("DIR REAL: " + str(real))
-                    print(cpu.id)
+                    #print("DIR REAL: " + str(real))
+                    #print(cpu.id)
                     lista_procesos[cpu.id].visita_pagina += 1
-
+                #print tabulate([[data,time.time(),real,colalistosstring , cpustring, memoriarealstring, memoriaswapstring,procesos_terminados]])
+                table += [[data,str(time.time() - initialTime),real,colalistosstring , cpustring, memoriarealstring, memoriaswapstring,str(procesos_terminados)]]
             #fin sacar de memoria real = none
             #sacar de mem virt. = none
             #array
@@ -275,38 +307,43 @@ try:
             #si id = idproceso -> none
             elif command_list[0] == "Fin":
                 proceso_i.setAcumTiempoCpu()
-                proceso_i.printTiempoCpu()
+                #proceso_i.printTiempoCpu()
                 proceso_i.setTiempoEspera()
-                proceso_i.printTiempoEspera()
+                #proceso_i.printTiempoEspera()
                 proceso_i.setTurnaroud()
-                proceso_i.printTurnaround()
+                #proceso_i.printTurnaround()
+                procesos_terminados.append(command_list[1])
                 #cpu = None       
-            
+                #print tabulate([[data,time.time(),' ',colalistosstring , cpustring, memoriarealstring, memoriaswapstring,procesos_terminados]])
+                table += [[data,str(time.time() - initialTime),' ',colalistosstring , cpustring, memoriarealstring, memoriaswapstring,str(procesos_terminados)]]
             elif command_list[0] == "End":
                 print "simulation terminated"
                 for i in lista_procesos:
                     lista_procesos[i].setTiempoEspera()
                     lista_procesos[i].setTurnaroud()
-
+        
         else:
             print >>sys.stderr, 'no data from', client_address
             connection.close()
             sys.exit()
 
 finally:
+    #print tabulate (table,headers)
+    print tabulate(table, headers, tablefmt="fancy_grid")
+    #print (table)
      # Clean up the connection
-    print >>sys.stderr, 'se fue al finally'
-    for i in range(0, len(cola_listos)):
-        elem = heapq.heappop(cola_listos)
-        print(str(elem.id) + " - " + str(elem.priori) + " " + str(elem.tiempo))
-    for i in range(0, len(memoria_real)):
-        if memoria_real[i] != None:
-            print "marco en real: " + str(i)
-            print memoria_real[i]
-    for i in range(0, len(memoria_swapping)):
-        if memoria_swapping[i] != None:
-            print "marco en swap: " + str(i)
-            print memoria_swapping[i]
+    # print >>sys.stderr, 'se fue al finally'
+    # for i in range(0, len(cola_listos)):
+    #     elem = heapq.heappop(cola_listos)
+    #     print(str(elem.id) + " - " + str(elem.priori) + " " + str(elem.tiempo))
+    # for i in range(0, len(memoria_real)):
+    #     if memoria_real[i] != None:
+    #         print "marco en real: " + str(i)
+    #         print memoria_real[i]
+    # for i in range(0, len(memoria_swapping)):
+    #     if memoria_swapping[i] != None:
+    #         print "marco en swap: " + str(i)
+    #         print memoria_swapping[i]
     #imprime los tiempos para cada proceso
     suma_turnaround = 0
     suma_espera = 0
